@@ -64,7 +64,12 @@ const indexView = quizzes =>
         ${style}
     </head>
     <body>
-        <h1>Quizzes</h1>` +
+        <h1>Quizzes</h1><table>
+        <tr>
+        <th>Pregunta</th>
+        <th>Editar</th>
+        <th>Borrar</th>
+        </tr>` +
     quizzes.map(quiz =>
         `<div>
                 <a href="/quizzes/${quiz.id}/play">${quiz.question}</a>
@@ -150,6 +155,25 @@ placeholder="Answer" />
 // View to show a form to edit the given quiz.
 const editView = (quiz) => {
     // .... introducir código
+    return `<!doctype html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <title>P7: Quiz</title>
+        ${style}
+    </head>
+    <body>
+        <h1>Edit</h1>
+        <form method="POST" action="/quizzes/${quiz.id}?_method=PUT">
+            Question: <input type="text" name="question" value="${quiz.question}"
+placeholder="Question" /> <br />
+            Answer: <input type="text" name="answer"   value="${quiz.answer}"  
+placeholder="Answer" />
+            <input type="submit" class="button" value="Update" /> <br />
+        </form>
+        <a href="/quizzes" class="button">Go back</a>
+    </body>
+    </html>`;
 };
 
 
@@ -216,16 +240,58 @@ const createController = (req, res, next) => {
 //  GET /quizzes/:id/edit
 const editController = (req, res, next) => {
     // .... introducir código
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) return next(`id "${req.params.id}" is not a number.`);
+
+    Quiz.findByPk(id)
+        .then(quiz=>{
+        if(quiz){
+            res.send(editView(quiz));
+        }else{
+            next(new Error(`Quiz ${id} not found.`))
+        }
+    })
 };
 
 //  PUT /quizzes/:id
 const updateController = (req, res, next) => {
     // .... introducir código
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) return next(`id "${req.params.id}" is not a number.`);
+
+    Quiz.findByPk(id)
+        .then(quiz=>{
+            if(quiz){
+                let{question,answer}=req.body;
+                quiz.question=question;
+                quiz.answer=answer;
+                quiz.save().then(()=>{
+                    res.redirect('/quizzes');
+
+                } );
+            }else{
+                next(new Error(`Quiz ${id} not found.`))
+            }
+        })
 };
 
 // DELETE /quizzes/:id
 const destroyController = (req, res, next) => {
     // .... introducir código
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) return next(`id "${req.params.id}" is not a number.`);
+
+    Quiz.findByPk(id)
+        .then(quiz=>{
+            if(quiz){
+                quiz.destroy().then(()=>{
+                    res.redirect('/quizzes');
+
+                } );
+            }else{
+                next(new Error(`Quiz ${id} not found.`))
+            }
+        })
 };
 
 
@@ -236,6 +302,9 @@ app.get('/quizzes/:id/play', playController);
 app.get('/quizzes/:id/check', checkController);
 app.get('/quizzes/new', newController);
 app.post('/quizzes', createController);
+app.get('/quizzes/:id/edit',editController);
+app.put('/quizzes/:id',updateController);
+app.delete('/quizzes/:id',destroyController);
 
 // ..... crear rutas e instalar los MWs para:
 //   GET  /quizzes/:id/edit
